@@ -1,3 +1,3 @@
 # Health_ClockIn_UESTC
-成电/电子科技大学每日健康打卡，基于大漠插件的鼠标模拟点击，勉强能用，目前只做了2560_1440和1920_1080的适配,需安装Chrome浏览器并将路径修改到Health_ClockIn.ini中
+成电/电子科技大学每日健康打卡，基于大漠插件的鼠标模拟点击，勉强能用，直接运行Health_ClockIn.exe即可，Health_ClockIn.py是源码，目前只做了2560_1440和1920_1080的适配,需安装Chrome浏览器并将路径修改到Health_ClockIn.ini中
 如果提示dm.dll问题请手动点击注册大漠插件.bat，如果提示dm.dll注册成功即可
