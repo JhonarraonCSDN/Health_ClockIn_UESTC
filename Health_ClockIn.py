@@ -1,9 +1,10 @@
 #!/usr/bin/python
 # coding: utf-8
-import os, sys, pyperclip, base64, cv2
+import os, sys, pyperclip, base64, io
 import win32com.client
 from time import sleep
 import numpy as np
+from PIL import Image
 
 
 class ClockIn(object):
@@ -28,10 +29,9 @@ class ClockIn(object):
             self.jtcy = info_text[13].replace(info[13], "").replace('\n', '')
 
         self.pic_path = os.getcwd() + "/pic"
-        self.text_path = os.getcwd() + "/text" + "/text.txt"
+        self.chrome_dir = info_text[14].replace("谷歌浏览器路径：", "").replace('\n', '').replace("\"", "")
+        print("谷歌浏览器路径：", self.chrome_dir)
 
-        self.chrome_dir = info_text[14].replace("谷歌浏览器路径：", "").replace('\n', '').replace("\"","")
-        print(self.chrome_dir)
         if not os.path.exists(self.chrome_dir):
             print("In ", __file__, " In", sys._getframe().f_lineno,
                   "无法找到Chorme浏览器的路径，请检查是否安装Chorme浏览器,并打开目录下Health_ClockIn.ini文件修改")
@@ -77,14 +77,14 @@ class ClockIn(object):
             dm = 0
         try:
             if dm == 0:
-                os.system(r'regsvr32 /s %s\dm.dll' % os.getcwd())
+                dm_path = os.getcwd() + "/注册大漠插件.bat"
+                os.startfile(dm_path)
                 dm = win32com.client.Dispatch('dm.dmsoft')
         except:
             dm = 0
         try:
             if dm == 0:
-                dm_path = os.getcwd() + "/注册大漠插件.bat"
-                os.startfile(dm_path)
+                os.system(r'regsvr32 /s %s\dm.dll' % os.getcwd())
                 dm = win32com.client.Dispatch('dm.dmsoft')
         except:
             input("无法注册大漠插件,按enter退出")
@@ -123,10 +123,8 @@ class ClockIn(object):
         print("In ", __file__, " In", sys._getframe().f_lineno, "无法找到hwnd")
         exit()
 
-    def find_target(self, big_img, small_img, aim_value=80):
-        img = cv2.cvtColor(big_img, cv2.COLOR_BGR2GRAY)
-
-        high = small_img.shape[0]
+    def find_target(self, big_img, aim_value=80):
+        img = big_img.convert("L")
 
         big_img_bw = np.copy(big_img)
         big_img_bw[big_img_bw < 254] = 0
@@ -269,7 +267,7 @@ class ClockIn(object):
         target_pic = "Lock.bmp"
         x, y = self.find_pic(target_pic, w1, h1, w2, h2)
         if x != -1 and y != -1:
-            self.click(x + 10, y)
+            self.click(x, y)
         else:
             print("In ", __file__, " In", sys._getframe().f_lineno, "未找到", target_pic)
         sleep(sleep_time)
@@ -311,25 +309,22 @@ class ClockIn(object):
                     print("In ", __file__, " In", sys._getframe().f_lineno, "找到%d张" % (len(result)), target_pic)
                     return 0
                 elif len(result) == 2:
-                    for i in range(len(result)):
-                        x_r, y_r = result[i][0], result[i][1]
-                        self.dm.moveto(x_r, y_r)
-                        self.dm.RightClick()
-                        target_pic = "copy.bmp"
-                        x3, y3 = self.find_pic(target_pic, w1, h1, w2, h2)  # Copy-坐标点x3，y3
-                        self.click(x3, y3)
+                    x_r, y_r = result[0][0], result[0][1]
+                    self.dm.moveto(x_r, y_r)
+                    self.dm.RightClick()
+                    target_pic = "copy.bmp"
+                    x3, y3 = self.find_pic(target_pic, w1, h1, w2, h2)  # Copy-坐标点x3，y3
+                    self.click(x3, y3)
 
-                        target_pic = "copy_link.bmp"
-                        x3, y3 = self.find_pic(target_pic, w1, h1, w2, h2)  # Copy_link_adress-坐标点x3，y3
-                        self.click(x3, y3)
+                    target_pic = "copy_link.bmp"
+                    x3, y3 = self.find_pic(target_pic, w1, h1, w2, h2)  # Copy_link_adress-坐标点x3，y3
+                    self.click(x3, y3)
 
-                        base64_str = pyperclip.paste().split(",")[-1]
-                        imgString = base64.b64decode(base64_str)
-                        nparr = np.fromstring(imgString, np.uint8)
-                        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-                        cv2.imwrite(self.pic_path + "/img" + str(i) + ".png", image)
-                    res = self.find_target(cv2.imread(self.pic_path + "/img0.png"),
-                                           cv2.imread(self.pic_path + "/img1.png"), 30)
+                    base64_str = pyperclip.paste().split(",")[-1]
+                    imgString = base64.b64decode(base64_str)
+                    image = io.BytesIO(imgString)
+                    img = Image.open(image)
+                    res = self.find_target(img, 30)
 
                     def drag():
                         x1 = x + 15
@@ -377,7 +372,12 @@ class ClockIn(object):
         else:
             print("In ", __file__, " In", sys._getframe().f_lineno, "未找到", target_pic)
         sleep(sleep_time)
-        self.write_info(w1, h1, w2, h2)
+        target_pic = "yitianbao.bmp"
+        x, y = self.find_pic(target_pic, w1, h1, w2, h2)
+        if x== -1 or y == -1:
+            self.write_info(w1, h1, w2, h2)
+        print("今日已填报")
+        sleep(5)
 
 
 if __name__ == "__main__":
